@@ -12,7 +12,7 @@ sane auto-renew for certbot
 
 #### The date is right there on the cert, cron uses dates, why not use it?
 
-# Cronic does it differenty.
+# cronic does it differenty.
 
 * __If it's too early to renew the cert__: 
   * let's encrypt is not contacted. 
@@ -40,5 +40,4 @@ sane auto-renew for certbot
 * If cronic can't renew at that time, it will retry every four hours until it does renew.
 
 
-![image](https://github.com/user-attachments/assets/699a669e-5345-4d16-ae81-1b231663e769)
 
