@@ -15,6 +15,7 @@ cronic handles cert renewal via cron.
 import os
 import random
 import subprocess
+import sys
 import time
 
 from cryptography import x509
@@ -32,7 +33,7 @@ DAYS_EARLY = 5
 SECONDS_EARLY = DAYS_EARLY * ONE_DAY
 DAY_SECONDS = 86400
 
-def _renew_cert():
+def _renew_cert(cert_pem):
     try:
         certbot = (
         subprocess.run(["which", CERTBOT], capture_output=True)
@@ -43,9 +44,9 @@ def _renew_cert():
     except:
         appt= time.gmtime(time.time()+FOUR_HOURS)
         print("renewal failed, trying again @ ",appt)
-        _install_cron(appt)
+        _install_cron(appt,cert_pem)
         
-def _mk_cron_appt(appt):
+def _mk_cron_appt(appt,cert_pem):
     wday = "*"
     stamp = f" #  renews on  {time.strftime('%a, %d %b %Y %H:%M:%S', appt)}"
     appt_job = f"\n{appt.tm_min}\t{appt.tm_hour}\t{appt.tm_mday}\t{appt.tm_mon}\t{wday}\t{CRONIC} {cert_pem} {stamp}\n"
@@ -67,9 +68,9 @@ def _clean_cron():
     ]
     return b"\n".join(cron_jobs)
 
-def _install_cron(appt):
+def _install_cron(appt,cert_pem):
     job = subprocess.Popen(INSTALL_CRON, stdin=subprocess.PIPE)
-    added_job = _mk_cron_appt(appt)
+    added_job = _mk_cron_appt(appt,cert_pem)
     new_cron = _clean_cron() + added_job
     job.communicate(new_cron)
     subprocess.call(LIST_CRON)
@@ -78,7 +79,7 @@ def _cert_not_after(cert_pem):
     with open(cert_pem,'r+') as inpem:
         data=inpem.read()
         cert = x509.load_pem_x509_certificate(data.encode())
-        return cert.not_valid_after.timestamp()
+        return cert.not_valid_after_utc.timestamp()
 
 def _random_seconds():
     return random.randint(1, DAY_SECONDS)
@@ -87,7 +88,6 @@ def cronic():
     """
     cronic automates cronjob creation for cert renewal with certbot.
     """
-    global cert_pem
     cert_pem=None
     if len(sys.argv) >1:
         cert_pem = sys.argv[1]
@@ -101,9 +101,9 @@ def cronic():
     days_left = (timestamp - time.time()) / ONE_DAY
     if days_left > DAYS_EARLY:
         appt = time.gmtime(timestamp - SECONDS_EARLY + _random_seconds())
-        _install_cron(appt)
+        _install_cron(appt,cert_pem)
     else:
-        _renew_cert()
+        _renew_cert(cert_pem)
         print("renewed")
 
 
