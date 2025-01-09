@@ -20,14 +20,12 @@ sane auto-renew for certbot
 ![image](https://github.com/user-attachments/assets/1c1d8bc7-a170-4e77-b451-f42f0ad16582)
 
 # I strongly disagree with this approach for numerous reasons.
-# Including but not limited to:
-#### The command makes no sense. Why start a process and put it to sleep before doing anything?
+### Including, but not limited to:
+* The command makes no sense. Why start a process and put it to sleep before doing anything?
+* Blindly attempting renewal on the 12th of every month, creates a ton of useless traffic on their servers.
+* The date is right there on the cert, cron uses dates, why not use it?
 
-#### Blindly attempting renewal on the 12th of every month, creates a ton of useless traffic on their servers.
-
-#### The date is right there on the cert, cron uses dates, why not use it?
-
-# cronic does it differenty.
+# cronic does it differently.
 
 * __If it's too early to renew the cert__: 
   * let's encrypt is not contacted. 
