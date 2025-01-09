@@ -52,13 +52,20 @@ def _mk_cron_appt(appt, cert_pem):
     appt_job = f"\n{appt.tm_min}\t{appt.tm_hour}\t{appt.tm_mday}\t{appt.tm_mon}\t{wday}\t{CRONIC} {cert_pem} {stamp}\n"
     return appt_job.encode()
 
+def _blank_line(job_line):
+    return len(job_line) != 0
+
+def _cronic_line(job_line):
+    return CRONIC.encode() not in job_line
 
 def _vrfy_cronjob(job_line):
-    if len(job_line) == 0:
-        return False
-    if CRONIC.encode() in job_line:
-        return False
-    return True
+    vrfy=-1
+    print("vrfy",vrfy)
+    vrfy+=_blank_line(job_line)
+    print("vrfy",vrfy)
+    vrfy+=_cronic_line(job_line)
+    print("vrfy",vrfy)
+    return vrfy
 
 
 def _clean_cron():
@@ -76,7 +83,7 @@ def _install_cron(appt, cert_pem):
     added_job = _mk_cron_appt(appt, cert_pem)
     new_cron = _clean_cron() + added_job
     job.communicate(new_cron)
-    print("crontab\n")
+    print("\n\ncrontab\n")
     subprocess.call(LIST_CRON)
 
 
@@ -91,16 +98,20 @@ def _random_seconds():
     return random.randint(1, DAY_SECONDS)
 
 
+def _get_cert_pem():
+    cert_pem = None
+    if len(sys.argv) > 1:
+        cert_pem = sys.argv[1]
+        return  cert_pem
+    print("I need a file path for the cert to renew")
+    sys.exit()
+    
+
 def cronic():
     """
     cronic automates cronjob creation for cert renewal with certbot.
     """
-    cert_pem = None
-    if len(sys.argv) > 1:
-        cert_pem = sys.argv[1]
-    else:
-        print("I need a file path for the cert to renew")
-        sys.exit()
+    cert_pem = _get_cert_pem()
     appt = time.gmtime(time.time())
     timestamp = _cert_not_after(cert_pem)
     print(f"\n\nCertificate expires {time.ctime(timestamp)}\n\n")
