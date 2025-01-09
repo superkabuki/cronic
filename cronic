@@ -3,8 +3,6 @@
 """
 cronic.py
 
-I use certbot from let's encrypt, which I like.
-
 cronic sets the cron job for certbot for a specific time,
 Five days before the cert expires.
 
@@ -20,7 +18,7 @@ import time
 
 from cryptography import x509
 
-#CERT_PEM="/etc/letsencrypt/live/futzu.com/cert.pem"
+# CERT_PEM="/etc/letsencrypt/live/futzu.com/cert.pem"
 
 CERTBOT = "certbot"
 CRONIC = os.path.realpath(__file__)
@@ -33,24 +31,27 @@ DAYS_EARLY = 5
 SECONDS_EARLY = DAYS_EARLY * ONE_DAY
 DAY_SECONDS = 86400
 
+
 def _renew_cert(cert_pem):
     try:
         certbot = (
-        subprocess.run(["which", CERTBOT], capture_output=True)
-        .stdout.decode()
-        .replace("\n", "")
+            subprocess.run(["which", CERTBOT], capture_output=True)
+            .stdout.decode()
+            .replace("\n", "")
         )
         subprocess.run([certbot, "renew"])
     except:
-        appt= time.gmtime(time.time()+FOUR_HOURS)
-        print("renewal failed, trying again @ ",appt)
-        _install_cron(appt,cert_pem)
-        
-def _mk_cron_appt(appt,cert_pem):
+        appt = time.gmtime(time.time() + FOUR_HOURS)
+        print("Renewal failed, trying again @ ", appt)
+        _install_cron(appt, cert_pem)
+
+
+def _mk_cron_appt(appt, cert_pem):
     wday = "*"
-    stamp = f" #  renews on  {time.strftime('%a, %d %b %Y %H:%M:%S', appt)}"
+    stamp = f" #  Renewal on {time.strftime('%a, %d %b %Y %H:%M:%S', appt)}"
     appt_job = f"\n{appt.tm_min}\t{appt.tm_hour}\t{appt.tm_mday}\t{appt.tm_mon}\t{wday}\t{CRONIC} {cert_pem} {stamp}\n"
     return appt_job.encode()
+
 
 def _vrfy_cronjob(job_line):
     if len(job_line) == 0:
@@ -58,6 +59,7 @@ def _vrfy_cronjob(job_line):
     if CRONIC.encode() in job_line:
         return False
     return True
+
 
 def _clean_cron():
     cron_list = subprocess.run(LIST_CRON, capture_output=True)
@@ -68,44 +70,48 @@ def _clean_cron():
     ]
     return b"\n".join(cron_jobs)
 
-def _install_cron(appt,cert_pem):
+
+def _install_cron(appt, cert_pem):
     job = subprocess.Popen(INSTALL_CRON, stdin=subprocess.PIPE)
-    added_job = _mk_cron_appt(appt,cert_pem)
+    added_job = _mk_cron_appt(appt, cert_pem)
     new_cron = _clean_cron() + added_job
     job.communicate(new_cron)
+    print("\n\ncrontab\n")
     subprocess.call(LIST_CRON)
 
+
 def _cert_not_after(cert_pem):
-    with open(cert_pem,'r+') as inpem:
-        data=inpem.read()
+    with open(cert_pem, "r+") as inpem:
+        data = inpem.read()
         cert = x509.load_pem_x509_certificate(data.encode())
         return cert.not_valid_after_utc.timestamp()
 
+
 def _random_seconds():
     return random.randint(1, DAY_SECONDS)
+
 
 def cronic():
     """
     cronic automates cronjob creation for cert renewal with certbot.
     """
-    cert_pem=None
-    if len(sys.argv) >1:
+    cert_pem = None
+    if len(sys.argv) > 1:
         cert_pem = sys.argv[1]
     else:
         print("I need a file path for the cert to renew")
         sys.exit()
     appt = time.gmtime(time.time())
     timestamp = _cert_not_after(cert_pem)
-    print(f'Expires on {time.ctime(timestamp)}\n\n')
+    print(f"\n\nCertificate expires {time.ctime(timestamp)}\n\n")
     appt = time.gmtime(timestamp - SECONDS_EARLY)
     days_left = (timestamp - time.time()) / ONE_DAY
     if days_left > DAYS_EARLY:
         appt = time.gmtime(timestamp - SECONDS_EARLY + _random_seconds())
-        _install_cron(appt,cert_pem)
+        _install_cron(appt, cert_pem)
     else:
         _renew_cert(cert_pem)
         print("renewed")
-
 
 
 if __name__ == "__main__":
