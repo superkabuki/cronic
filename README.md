@@ -1,5 +1,20 @@
 # cronic
 sane auto-renew for certbot
+---
+# Requirements
+1. Python 3.6+
+2. the cryptography pip package  ( _I will get rid of this dependency soon_)
+3. Any UNIX or Linux system using cron.
+--- 
+# Install
+1. git clone the repo `git clone https://github.com/superkabuki/cronic`
+2. chmod cronic/cronic  `chmod +x cronic/cronic`
+3. as root, run it with the path to your cert `cronic/cronic /etc/letsencrypt/live/example.com/cert.pem`
+4. run it once and you're done.  It doesn't matter if you cert is up for renewal or not, cronic will handle it.
+---
+
+
+
 # Here's how certbot say to renew a cert
 
 ![image](https://github.com/user-attachments/assets/1c1d8bc7-a170-4e77-b451-f42f0ad16582)
@@ -34,6 +49,8 @@ sane auto-renew for certbot
 * pass in the cert.pem file on the command line.
 
 ![image](https://github.com/user-attachments/assets/635fb10c-1408-40b2-a845-939e5e34981a)
+
+
 
 * This cert expires on  Wed Apr  9 00:26:45 2025
 * cronic set a cron job to renew on  Fri, 04 Apr 2025 17:36:23
