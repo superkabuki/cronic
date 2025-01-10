@@ -2,6 +2,52 @@
 sane auto-renew for certbot
 ### I like certbot, it just needs an easy way to renew certs.
 
+# Here's how certbot say to renew a cert
+
+![image](https://github.com/user-attachments/assets/1c1d8bc7-a170-4e77-b451-f42f0ad16582)
+
+### I disagree with this approach.
+
+
+# cronic does it differently.
+
+* You only need to run cronic manually once.
+* cronic uses the certificate notAfter date to determine when to renew.
+* renewal is scheduled for 5 days before certificate notAfter date.
+* After the certificate is renewed, cronic automatically sets the next cron job.
+* cronic has automatic Let's Encrypt certificate discovery.
+* cronic support multiple certificates with different renewal dates, on the same server.
+  
+## cronic conditionals
+
+* __If it's too early to renew the cert__: 
+
+  * let's encrypt is not contacted. 
+  * Cron job installed to valid renewal time.
+  * crontab displayed.
+
+* __If renewal fails__:
+
+  * error messages printed.
+  * new cronjob installed for four hours later.
+  * crontab displayed.
+
+* __If renewal time is valid__:
+
+  * cert is renewed.
+  * cron job created for next renewal at valid renewal time.
+  * crontab displayed.
+
+
+  
+![image](https://github.com/user-attachments/assets/cb436eea-4249-4e1b-b2f7-0a86f45e30d0)
+
+
+* Of course it runs on [__OpenBSD__](https://openbsd.org).
+* Also tested on __Debian Sid__.
+
+
+
 ## cronic Requirements
 
 1. Python 3.6+
@@ -15,48 +61,7 @@ sane auto-renew for certbot
 2. chmod cronic/cronic  `chmod +x cronic/cronic`
 3. as root, run it. `cronic/cronic `
 4. run it once and you're done.
-   * It doesn't matter if you cert is up for renewal or not.
+   * It doesn't matter if you cert is up for renewal or not, cronic will handle it.
    * It doesn't matter how many certs you have, cronic will handle it.
 ---
-
-# Here's how certbot say to renew a cert
-
-![image](https://github.com/user-attachments/assets/1c1d8bc7-a170-4e77-b451-f42f0ad16582)
-
-# I disagree with this approach for a few reasons.
-* I don't really understand the command. Why start a process and put it to sleep before doing anything?
-* Attempting renewal on the 12th of every month creates a ton of traffic on their servers.
-
-# cronic does it differently.
-* The date is right there on the cert, cron uses dates, why not use it?
-* cronic has automatic Let's Encrypt cert discovery.
-* cronic support multiple certs with different renewals, on the same server.
-
-* __If it's too early to renew the cert__: 
-  * let's encrypt is not contacted. 
-  * Cron job installed to valid renewal time.
-  * crontab displayed.
-
-* __If renewal fails__:
-  * error messages printed.
-  * new cronjob installed for four hours later.
-  * crontab displayed.
-
-* __If renewal time is valid__:
-  * cert is renewed.
-  * cron job created for next renewal at valid renewal time.
-  * crontab displayed.
-
-* You only have to run cronic manually once.
-![image](https://github.com/user-attachments/assets/cb436eea-4249-4e1b-b2f7-0a86f45e30d0)
-
-* Of course it Runs on OpenBSD.
-* Also tested on Debian Sid.
-
-
-* This cert expires on  Wed Apr  9 00:26:45 2025
-* cronic set a cron job to renew on  Fri, 04 Apr 2025 17:36:23
-* If cronic can't renew at that time, it will retry every four hours until it does renew.
-
-
 
