@@ -149,7 +149,7 @@ def cronic():
     days_left = (timestamp - time.time()) / ONE_DAY
     if days_left > DAYS_EARLY:
         appt = time.gmtime(timestamp - SECONDS_EARLY + _random_seconds())
-        print(f"Cert is not yet read for renewal,\nsetting new cron job for {time.strftime('%a, %d %b %Y %H:%M:%S', appt)}.\n")
+        print(f"Cert is not yet read for renewal.\nSetting new cron job for {time.strftime('%a, %d %b %Y %H:%M:%S', appt)}.\n")
         _install_cron(appt, cert_pem)
     else:
         _renew_cert(cert_pem)
