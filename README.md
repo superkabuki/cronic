@@ -1,5 +1,6 @@
 # cronic
 sane auto-renew for certbot
+# I like certbot, it just needs a easy way to renew certs.
 ---
 # Requirements
 1. Python 3.6+
@@ -19,10 +20,9 @@ sane auto-renew for certbot
 
 ![image](https://github.com/user-attachments/assets/1c1d8bc7-a170-4e77-b451-f42f0ad16582)
 
-# I disagree with this approach for numerous reasons.
-### Including, but not limited to:
-* The command makes no sense. Why start a process and put it to sleep before doing anything?
-* Blindly attempting renewal on the 12th of every month, creates a ton of useless traffic on their servers.
+# I disagree with this approach for a few reasons.
+* I don't really understand the command. Why start a process and put it to sleep before doing anything?
+* Attempting renewal on the 12th of every month creates a ton of traffic on their servers.
 * The date is right there on the cert, cron uses dates, why not use it?
 
 # cronic does it differently.
