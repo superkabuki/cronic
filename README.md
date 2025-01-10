@@ -46,8 +46,8 @@ sane auto-renew for certbot
 
 * pass in the cert.pem file on the command line.
 
-![image](https://github.com/user-attachments/assets/635fb10c-1408-40b2-a845-939e5e34981a)
 
+![image](https://github.com/user-attachments/assets/9c695597-a35e-44ad-b830-732b59ad2d88)
 
 
 * This cert expires on  Wed Apr  9 00:26:45 2025
