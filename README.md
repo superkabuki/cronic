@@ -1,13 +1,9 @@
 # cronic
 sane auto-renew for certbot
-### I like certbot. cronic is how I renew my let's encrypt certificates.
 
-### certbot says
+### certbot says:
 
 ![image](https://github.com/user-attachments/assets/1c1d8bc7-a170-4e77-b451-f42f0ad16582)
-
-### I disagree with this approach.
-
 
 # cronic does it differently.
 
@@ -40,7 +36,8 @@ sane auto-renew for certbot
 
 
   
-![image](https://github.com/user-attachments/assets/cb436eea-4249-4e1b-b2f7-0a86f45e30d0)
+
+![image](https://github.com/user-attachments/assets/834c0793-b182-4895-a67e-fc52cf295249)
 
 
 * Of course it runs on [__OpenBSD__](https://openbsd.org).
