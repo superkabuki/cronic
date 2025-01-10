@@ -1,8 +1,8 @@
 # cronic
 sane auto-renew for certbot
-### I like certbot, it just needs an easy way to renew certs.
+### I like certbot. cronic is how I renew my let's encrypt certificates.
 
-# Here's how certbot say to renew a cert
+### certbot says
 
 ![image](https://github.com/user-attachments/assets/1c1d8bc7-a170-4e77-b451-f42f0ad16582)
 
