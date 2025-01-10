@@ -82,7 +82,7 @@ def _install_cron(appt, cert_pem):
     added_job = _mk_cron_appt(appt, cert_pem)
     new_cron = _clean_cron() + added_job
     job.communicate(new_cron)
-    print("\n\ncrontab\n")
+    print("crontab\n")
     subprocess.call(LIST_CRON)
 
 
