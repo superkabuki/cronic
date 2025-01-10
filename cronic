@@ -38,6 +38,7 @@ REV = "\033[7;1m"
 NO = "\033[0m"
 Y = "\033[93m"
 
+
 def _renew_cert(cert_pem):
     appt = None
     try:
@@ -168,7 +169,7 @@ def _chk_cert(cert_pem):
     print(f"{REV}{cert_pem.replace(LETS_DIR+'/','')} expires {time.ctime(timestamp)}\n{NO}")
     days_left = (timestamp - time.time()) / ONE_DAY
     if days_left > DAYS_EARLY:
-        print(f"{Y}{REV}{cert_pem.replace(LETS_DIR+'/','')} is not yet read for renewal.{NO}\n")
+        print(f"{Y}{REV}{cert_pem.replace(LETS_DIR+'/','')} is not yet ready for renewal.{NO}\n")
         print(
             f"{REV}Setting new cron job for {time.strftime('%a, %d %b %Y %H:%M:%S', appt)}.{NO}\n"
         )
