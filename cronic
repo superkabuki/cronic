@@ -4,10 +4,11 @@
 """
 cronic.py
 
+cronic handles cert renewal via cron.
+
 cronic sets the cron job for certbot for a specific time,
 Five days before the cert expires.
 
-cronic handles cert renewal via cron.
 
 """
 
@@ -15,7 +16,6 @@ import datetime
 import os
 import random
 import subprocess
-import sys
 import time
 
 
@@ -29,22 +29,29 @@ ONE_DAY = FOUR_HOURS * 6
 DAYS_EARLY = 5
 SECONDS_EARLY = DAYS_EARLY * ONE_DAY
 DAY_SECONDS = 86400
-OPENSSL_CMD=['openssl','x509','-enddate','-noout','-in']
-CERT_TIME_FMT="%b %d %H:%M:%S %Y %Z"
+OPENSSL_CMD = ["openssl", "x509", "-enddate", "-noout", "-in"]
+CERT_TIME_FMT = "%b %d %H:%M:%S %Y %Z"
+LETS_DIR = "/etc/letsencrypt/live"
 
+# ANSI Color Codes
+REV = "\033[7;1m"
+NO = "\033[0m"
+Y = "\033[93m"
 
 def _renew_cert(cert_pem):
+    appt = None
     try:
         certbot = (
-            subprocess.run(["which", CERTBOT], capture_output=True)
+            subprocess.run(["which", CERTBOT], capture_output=True, check=True)
             .stdout.decode()
             .replace("\n", "")
         )
-        subprocess.run([certbot, "renew"])
+        subprocess.run([certbot, "renew"], check=True)
+        _, appt = _mk_timestamp_appt(cert_pem)
     except:
         appt = time.gmtime(time.time() + FOUR_HOURS)
-        print("Renewal failed, trying again @ ", appt)
-        _install_cron(appt, cert_pem)
+        print(f"{Y}{REV}Renewal failed, trying again @ {appt}{NO}")
+    return appt
 
 
 def _mk_cron_appt(appt, cert_pem):
@@ -52,8 +59,9 @@ def _mk_cron_appt(appt, cert_pem):
     _mk_cron_appt create the crontab line.
     """
     wday = "*"
-    stamp = f" #  Renewal on {time.strftime('%a, %d %b %Y %H:%M:%S', appt)}"
-    appt_job = f"\n{appt.tm_min}\t{appt.tm_hour}\t{appt.tm_mday}\t{appt.tm_mon}\t{wday}\t{CRONIC} {cert_pem} {stamp}\n"
+    stamp = f" # {cert_pem.replace(LETS_DIR+'/','')} renewal on {time.strftime('%a, %d %b %Y %H:%M:%S', appt)}"
+    when= f"\n{appt.tm_min}\t{appt.tm_hour}\t{appt.tm_mday}\t{appt.tm_mon}\t{wday}"
+    appt_job =f"{when}\t{CRONIC}{stamp}\n"
     return appt_job.encode()
 
 
@@ -77,9 +85,9 @@ def _vrfy_cronjob(job_line):
     _vrfy_cronjob verify the line is not
     blank and not the last cronic crontab entry
     """
-    vrfy=-1
-    vrfy+=_blank_line(job_line)
-    vrfy+=_cronic_line(job_line)
+    vrfy = -1
+    vrfy += _blank_line(job_line)
+    vrfy += _cronic_line(job_line)
     return vrfy
 
 
@@ -89,7 +97,7 @@ def _clean_cron():
     the previous cronic crontab entry
     from the crontab.
     """
-    cron_list = subprocess.run(LIST_CRON, capture_output=True)
+    cron_list = subprocess.run(LIST_CRON, capture_output=True,check=True)
     cron_jobs = [
         line.replace(b"\n", b"")
         for line in cron_list.stdout.split(b"\n")
@@ -98,15 +106,20 @@ def _clean_cron():
     return b"\n".join(cron_jobs)
 
 
-def _install_cron(appt, cert_pem):
+def _install_cron(cron_jobs):
     """
     _install_cron install the new crontab
     """
-    job = subprocess.Popen(INSTALL_CRON, stdin=subprocess.PIPE)
-    added_job = _mk_cron_appt(appt, cert_pem)
-    new_cron = _clean_cron() + added_job
-    job.communicate(new_cron)
-    print("crontab\n")
+    added = []
+    for pair in cron_jobs:
+        appt = pair[0]
+        cert_pem = pair[1]
+        added.append(_mk_cron_appt(appt, cert_pem))
+
+    with subprocess.Popen(INSTALL_CRON, stdin=subprocess.PIPE) as job:
+        add2cron =b"\n".join(added) + b"\n"
+        new_cron = _clean_cron() + add2cron
+        job.communicate(new_cron)
     subprocess.call(LIST_CRON)
 
 
@@ -115,45 +128,65 @@ def _cert_not_after(cert_pem):
     _cert_not_after call openssl to read cert.notAfter
     and covert to timestamp
     """
-    cmd = OPENSSL_CMD+[cert_pem]
+    cmd = OPENSSL_CMD + [cert_pem]
     not_after = (
-            subprocess.run(cmd, capture_output=True)
-            .stdout.decode()
-            .replace("notAfter=", "").replace("\n","")
-        )
-    return datetime.datetime.strptime(not_after,CERT_TIME_FMT).timestamp()
+        subprocess.run(cmd, capture_output=True, check=True)
+        .stdout.decode()
+        .replace("notAfter=", "")
+        .replace("\n", "")
+    )
+    return datetime.datetime.strptime(not_after, CERT_TIME_FMT).timestamp()
 
 
 def _random_seconds():
     return random.randint(1, DAY_SECONDS)
 
 
-def _get_cert_pem():
-    cert_pem = None
-    if len(sys.argv) > 1:
-        cert_pem = sys.argv[1]
-        return  cert_pem
-    print("I need a file path for the cert to renew")
-    sys.exit()
+def _discover():
+    """
+    _discover find certs for renewal.
+    """
+    cert_list = []
+    for that in os.listdir(LETS_DIR):
+        cp = f"{LETS_DIR}/{that}"
+        if os.path.isdir(cp):
+            cp = f"{cp}/cert.pem"
+            if os.path.isfile(cp):
+                print(f"\n{REV}Found {cp}{NO}\n")
+                cert_list.append(cp)
+    return cert_list
+
+
+def _mk_timestamp_appt(cert_pem):
+    timestamp = _cert_not_after(cert_pem)
+    appt = time.gmtime(timestamp - SECONDS_EARLY + _random_seconds())
+    return timestamp, appt
+
+
+def _chk_cert(cert_pem):
+    timestamp, appt = _mk_timestamp_appt(cert_pem)
+    print(f"{REV}{cert_pem.replace(LETS_DIR+'/','')} expires {time.ctime(timestamp)}\n{NO}")
+    days_left = (timestamp - time.time()) / ONE_DAY
+    if days_left > DAYS_EARLY:
+        print(f"{Y}{REV}{cert_pem.replace(LETS_DIR+'/','')} is not yet read for renewal.{NO}\n")
+        print(
+            f"{REV}Setting new cron job for {time.strftime('%a, %d %b %Y %H:%M:%S', appt)}.{NO}\n"
+        )
+    else:
+        appt = _renew_cert(cert_pem)
+    return appt
 
 
 def cronic():
     """
     cronic automates cronjob creation for cert renewal with certbot.
     """
-    cert_pem = _get_cert_pem()
-    appt = time.gmtime(time.time())
-    timestamp = _cert_not_after(cert_pem)
-    print(f"\n\nCertificate expires {time.ctime(timestamp)}\n\n")
-    appt = time.gmtime(timestamp - SECONDS_EARLY)
-    days_left = (timestamp - time.time()) / ONE_DAY
-    if days_left > DAYS_EARLY:
-        appt = time.gmtime(timestamp - SECONDS_EARLY + _random_seconds())
-        print(f"Cert is not yet read for renewal.\nSetting new cron job for {time.strftime('%a, %d %b %Y %H:%M:%S', appt)}.\n")
-        _install_cron(appt, cert_pem)
-    else:
-        _renew_cert(cert_pem)
-        print("renewed")
+    certs = _discover()
+    cron_jobs = []
+    for cert_pem in certs:
+        appt = _chk_cert(cert_pem)
+        cron_jobs.append((appt, cert_pem))
+    _install_cron(cron_jobs)
 
 
 if __name__ == "__main__":
