@@ -3,7 +3,7 @@ sane auto-renew for certbot
 ---
 # Requirements
 1. Python 3.6+
-2. the cryptography pip package  ( _I will get rid of this dependency soon_)
+2. openssl 
 3. Any UNIX or Linux system using cron.
 --- 
 # Install
