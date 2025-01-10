@@ -7,7 +7,6 @@ sane auto-renew for certbot
 
 # cronic does it differently.
 
-* You only need to run cronic manually once.
 * cronic uses the certificate notAfter date to determine when to renew.
 * renewal is scheduled for 5 days before certificate notAfter date.
 * After the certificate is renewed, cronic automatically sets the next cron job.
