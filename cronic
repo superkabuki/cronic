@@ -9,7 +9,6 @@ cronic handles cert renewal via cron.
 cronic sets the cron job for certbot for a specific time,
 Five days before the cert expires.
 
-
 """
 
 import datetime
@@ -17,21 +16,26 @@ import os
 import random
 import subprocess
 import time
+from calendar import timegm
 
 
+
+LETS_DIR = "/etc/letsencrypt/live"
+
+# commands
 CERTBOT = "certbot"
 CRONIC = os.path.realpath(__file__)
 CRONTAB = "crontab"
 LIST_CRON = [CRONTAB, "-l"]
 INSTALL_CRON = [CRONTAB, "-"]
-FOUR_HOURS = 14400
-ONE_DAY = FOUR_HOURS * 6
-DAYS_EARLY = 5
-SECONDS_EARLY = DAYS_EARLY * ONE_DAY
-DAY_SECONDS = 86400
 OPENSSL_CMD = ["openssl", "x509", "-enddate", "-noout", "-in"]
+
+# Time stuff
+DAYS_EARLY = 5
+ONE_DAY = 86400
+FOUR_HOURS= ONE_DAY/6
+SECONDS_EARLY = DAYS_EARLY * ONE_DAY
 CERT_TIME_FMT = "%b %d %H:%M:%S %Y %Z"
-LETS_DIR = "/etc/letsencrypt/live"
 
 # ANSI Color Codes
 REV = "\033[7;1m"
@@ -107,19 +111,31 @@ def _clean_cron():
     return b"\n".join(cron_jobs)
 
 
+def _soonest_renewal(cron_jobs):
+    """
+    _soonest_renewal if more than one cert is found,
+    set the cron job for the  cert with the soonest renewal date.
+    """
+    soonest=None
+    soon_cert=None
+    for pair in cron_jobs:
+        appt = pair[0]
+        cert_pem = pair[1]
+        tg=timegm(appt)
+        if not soonest:
+            soonest=tg
+        if soonest >= tg:
+            soonest=tg
+            soon_cert=cert_pem
+    return _mk_cron_appt(time.gmtime(soonest), soon_cert)
+
+
 def _install_cron(cron_jobs):
     """
     _install_cron install the new crontab
     """
-    added = []
-    for pair in cron_jobs:
-        appt = pair[0]
-        cert_pem = pair[1]
-        added.append(_mk_cron_appt(appt, cert_pem))
-
     with subprocess.Popen(INSTALL_CRON, stdin=subprocess.PIPE) as job:
-        add2cron =b"\n".join(added) + b"\n"
-        new_cron = _clean_cron() + add2cron
+        new_cron = _clean_cron() + _soonest_renewal(cron_jobs)
         job.communicate(new_cron)
     subprocess.call(LIST_CRON)
 
@@ -140,7 +156,10 @@ def _cert_not_after(cert_pem):
 
 
 def _random_seconds():
-    return random.randint(1, DAY_SECONDS)
+    """
+    _random_seconds up to one day worth of seconds
+    """
+    return random.randint(1, ONE_DAY)
 
 
 def _discover():
@@ -153,25 +172,33 @@ def _discover():
         if os.path.isdir(cp):
             cp = f"{cp}/cert.pem"
             if os.path.isfile(cp):
-                print(f"\n{REV}Found {cp}{NO}\n")
+                print(f"\n{REV} Found {cp} {NO}\n")
                 cert_list.append(cp)
     return cert_list
 
 
 def _mk_timestamp_appt(cert_pem):
+    """
+    _mk_timestamp_appt get the cert notAfter timestamp
+    and calculate the appt time for renewal
+    """
     timestamp = _cert_not_after(cert_pem)
     appt = time.gmtime(timestamp - SECONDS_EARLY + _random_seconds())
     return timestamp, appt
 
 
 def _chk_cert(cert_pem):
+    """
+    _chk_cert   determines if the cert needs renewing
+    and renews it if needed.
+    """
     timestamp, appt = _mk_timestamp_appt(cert_pem)
-    print(f"{REV}{cert_pem.replace(LETS_DIR+'/','')} expires {time.ctime(timestamp)}\n{NO}")
+    print(f"\t{REV} {cert_pem.replace(LETS_DIR+'/','')} expires {time.ctime(timestamp)} {NO} \n")
     days_left = (timestamp - time.time()) / ONE_DAY
     if days_left > DAYS_EARLY:
-        print(f"{Y}{REV}{cert_pem.replace(LETS_DIR+'/','')} is not yet ready for renewal.{NO}\n")
+        print(f"\t\t\t{Y}{REV} {cert_pem.replace(LETS_DIR+'/','')} is not yet ready for renewal. {NO} \n")
         print(
-            f"{REV}Setting new cron job for {time.strftime('%a, %d %b %Y %H:%M:%S', appt)}.{NO}\n"
+            f"\t{REV} Setting new cron job for {time.strftime('%a, %d %b %Y %H:%M:%S', appt)}.{NO} \n"
         )
     else:
         appt = _renew_cert(cert_pem)
