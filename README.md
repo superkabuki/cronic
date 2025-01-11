@@ -36,7 +36,7 @@ sane auto-renew for certbot
 
   
 
-![image](https://github.com/user-attachments/assets/834c0793-b182-4895-a67e-fc52cf295249)
+![image](https://github.com/user-attachments/assets/42c36173-bfaa-44a7-89d3-bfb4420cc3cd)
 
 
 * Of course it runs on [__OpenBSD__](https://openbsd.org).
