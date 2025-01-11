@@ -1,5 +1,6 @@
 # cronic
 sane auto-renew for certbot
+![image](https://github.com/user-attachments/assets/2f166692-ec92-44e3-a3f9-be44d415a24b)
 
 ### certbot says:
 
@@ -36,7 +37,6 @@ sane auto-renew for certbot
 
   
 
-![image](https://github.com/user-attachments/assets/42c36173-bfaa-44a7-89d3-bfb4420cc3cd)
 
 
 * Of course it runs on [__OpenBSD__](https://openbsd.org).
