@@ -4,7 +4,8 @@
 ### Let me state emphatically***, I am a HUGE fan of certbot.
 > I have always had a problem with companies charging hundreds of dollars for certs, and I used to self sign certs for my mail servers, and that huge pain in the ass. My only issue is that I often forget to renew my certs in a timely manner. I've been using this for a couple of years and haven't even thought about my certs until just recently when I deployed a new OpenBSD mail server, I ran certbot got my cert, ran cronic and set a cron job, and I'm done. 
 <br>
->_I can't believe I spelled emphatically correctly, on the first try._
+
+_I can't believe I spelled emphatically correctly, on the first try._
 
 
 ### certbot says:
