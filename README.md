@@ -1,11 +1,9 @@
 # cronic auto-renew for certbot
 ![image](https://github.com/user-attachments/assets/2f166692-ec92-44e3-a3f9-be44d415a24b)
 
-### Let me state emphatically***, I am a HUGE fan of certbot.
-> I have always had a problem with companies charging hundreds of dollars for certs, and I used to self sign certs for my mail servers, and that huge pain in the ass. My only issue is that I often forget to renew my certs in a timely manner. I've been using this for a couple of years and haven't even thought about my certs until just recently when I deployed a new OpenBSD mail server, I ran certbot got my cert, ran cronic and set a cron job, and I'm done. 
+###  I am a HUGE fan of certbot.
+> I have always had a problem with companies charging hundreds of dollars for certs, and I used to self sign certs for my mail servers, and that is a huge pain in the ass. My only issue is that I often forget to renew my certs in a timely manner. I've been using this for a couple of years and haven't even thought about my certs until just recently when I deployed a new OpenBSD mail server, I ran certbot got my cert, ran cronic and set a cron job, and I'm done. 
 <br>
-
-_***I can't believe I spelled emphatically correctly, on the first try._
 
 
 ### certbot says:
@@ -21,26 +19,25 @@ _***I can't believe I spelled emphatically correctly, on the first try._
 * cronic support multiple certificates with different renewal dates, on the same server.
   
 ## cronic conditionals
+* You can run cronic manually at any time, it won't break itself.
+* These are the conditioals used by cronic.
 
-* __If it's too early to renew the cert__: 
+  
+* __If the cert is NOT ready renewal__: 
 
   * let's encrypt is not contacted. 
   * Cron job installed to valid renewal time.
   * crontab displayed.
 
-* __If renewal fails__:
-
-  * error messages printed.
-  * new cronjob installed for four hours later.
-  * crontab displayed.
-
-* __If renewal time is valid__:
-
+* __If the cert is ready for renewal__:
   * cert is renewed.
   * cron job created for next renewal at valid renewal time.
   * crontab displayed.
 
-
+* __If the renewal process fails and renewal cannot be attempted__:
+  * error messages printed.
+  * new cronjob installed for four hours later.
+  * crontab displayed.
   
 
 
