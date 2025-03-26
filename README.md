@@ -1,6 +1,34 @@
 # cronic auto-renew for certbot
 ![image](https://github.com/user-attachments/assets/2f166692-ec92-44e3-a3f9-be44d415a24b)
 
+# cronic now restarts services.
+<pre> Automatic certificate renewal is useless if the services that use the certificate are  not restarted.
+
+to have a service restarted after the certificate is renewed,
+use the "--restart" switch with the service command to be
+restarted in quotes.
+example:
+
+    ./cronic --restart "/usr/sbin/nginx -s reload"
+
+restart commands can be added anytime, whether or not
+the certificate is renewed.
+
+restart commands only need to be added once.
+
+the restart command will be run everytime a certificate is renewed.
+
+to remove a restart command:
+
+        crontab -e
+
+delete the line containing the command you wish to remove.
+
+
+
+</pre>
+
+
 ###  I am a HUGE fan of certbot.
 > I have always had a problem with companies charging hundreds of dollars for certs, and I used to self sign certs for my mail servers, and that is a huge pain in the ass. My only issue is that I often forget to renew my certs in a timely manner. I've been using this for a couple of years and haven't even thought about my certs until just recently when I deployed a new OpenBSD mail server, I ran certbot got my cert, ran cronic and set a cron job, and I'm done. 
 <br>
