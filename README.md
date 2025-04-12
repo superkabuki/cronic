@@ -1,7 +1,14 @@
 # cronic auto-renew for certbot
 ![image](https://github.com/user-attachments/assets/2f166692-ec92-44e3-a3f9-be44d415a24b)
 
+# Cron based automatic certificate renewal. 
+
+![image](https://github.com/user-attachments/assets/5166c335-d5de-4933-b1a5-b68336072a68)
+
 # cronic now restarts services.
+
+![image](https://github.com/user-attachments/assets/8dd83c77-cf69-4be5-bd9f-16a1627264ca)
+
 <pre> Automatic certificate renewal is useless if the services that use the certificate are  not restarted.
 
 to have a service restarted after the certificate is renewed,
@@ -29,15 +36,6 @@ delete the line containing the command you wish to remove.
 </pre>
 
 
-###  I am a HUGE fan of certbot.
-> I have always had a problem with companies charging hundreds of dollars for certs, and I used to self sign certs for my mail servers, and that is a huge pain in the ass. My only issue is that I often forget to renew my certs in a timely manner. I've been using this for a couple of years and haven't even thought about my certs until just recently when I deployed a new OpenBSD mail server, I ran certbot got my cert, ran cronic and set a cron job, and I'm done. 
-<br>
-
-
-### certbot says:
-
-![image](https://github.com/user-attachments/assets/1c1d8bc7-a170-4e77-b451-f42f0ad16582)
-
 # cronic does it differently.
 
 * cronic uses the certificate notAfter date to determine when to renew.
@@ -50,16 +48,16 @@ delete the line containing the command you wish to remove.
 * You can run cronic manually at any time, it won't break itself.
 * These are the conditioals used by cronic.
 
+* __If the cert IS ready for renewal__:
+  * cert is renewed.
+  * cron job created for next renewal at valid renewal time.
+  * crontab displayed.
+  * servicess are restarted to use the new certificate.
   
 * __If the cert is NOT ready renewal__: 
 
   * let's encrypt is not contacted. 
   * Cron job installed to valid renewal time.
-  * crontab displayed.
-
-* __If the cert is ready for renewal__:
-  * cert is renewed.
-  * cron job created for next renewal at valid renewal time.
   * crontab displayed.
 
 * __If the renewal process fails and renewal cannot be attempted__:
