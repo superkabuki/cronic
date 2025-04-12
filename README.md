@@ -1,7 +1,7 @@
-# cronic auto-renew for certbot
+# cronic is auto-renew for certbot
 ![image](https://github.com/user-attachments/assets/2f166692-ec92-44e3-a3f9-be44d415a24b)
 
-# Cron based automatic certificate renewal. 
+# Cron based automatic certificate discovery and renewal. 
 
 ![image](https://github.com/user-attachments/assets/5166c335-d5de-4933-b1a5-b68336072a68)
 
@@ -9,31 +9,29 @@
 
 ![image](https://github.com/user-attachments/assets/8dd83c77-cf69-4be5-bd9f-16a1627264ca)
 
-<pre> Automatic certificate renewal is useless if the services that use the certificate are  not restarted.
+### Automatic certificate renewal is useless if the services that use the certificate are  not restarted.
 
-to have a service restarted after the certificate is renewed,
-use the "--restart" switch with the service command to be
-restarted in quotes.
-example:
-
+* To have a service restarted after the certificate is renewed, use the "__--restart__" switch.
+* __--restart__  is followed by the command in quotes.
+* example:
+  
+```sh
     ./cronic --restart "/usr/sbin/nginx -s reload"
+```
+* __--restart__ commands can be added anytime, whether or not the certificate is renewed.
 
-restart commands can be added anytime, whether or not
-the certificate is renewed.
+* __--restart__ commands only need to be added once.
 
-restart commands only need to be added once.
+* the command will be run after a certificate is renewed.
 
-the restart command will be run everytime a certificate is renewed.
-
-to remove a restart command:
-
+* to remove a restart command:
+```sh
         crontab -e
+```
 
-delete the line containing the command you wish to remove.
+* delete the line containing the command you wish to remove.
 
 
-
-</pre>
 
 
 # cronic does it differently.
