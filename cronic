@@ -1,7 +1,29 @@
 #!/usr/bin/env python3
-
-
 """
+cronic
+
+cronic handles cert renewal via cron.
+
+cronic sets the cron job for certbot for a specific time,
+Five days before the cert expires.
+
+Renewing the certificate is useless if you don't restart the
+services though.
+
+cronic now restarts services.
+"""
+
+
+import datetime
+import os
+import random
+import re
+import subprocess
+import sys
+import time
+from calendar import timegm
+
+HELP = """
 cronic
 
 cronic handles cert renewal via cron.
@@ -15,11 +37,11 @@ services though.
 cronic now restarts services.
 
 to have a service restarted after the certificate is renewed,
-use the "--restart" switch with the service command to be
+use the --restart switch with the service command to be
 restarted in quotes.
 example:
 
-    ./cronic --restart "/usr/sbin/nginx -s reload"
+    ./cronic --restart '/usr/sbin/nginx -s reload'
 
 restart commands can be added anytime, whether or not
 the certificate is renewed.
@@ -35,20 +57,10 @@ to remove a restart command:
 delete the line containing the command you wish to remove.
 """
 
-import datetime
-import os
-import random
-import re
-import subprocess
-import sys
-import time
-from calendar import timegm
-
-
 
 LETS_DIR = "/etc/letsencrypt/live"
-AUTOMARK= "# cronic auto-renew"
-RESTARTMARK= "# cronic restart"
+AUTOMARK = "# cronic auto-renew"
+RESTARTMARK = "# cronic restart"
 
 # commands
 CERTBOT = "certbot"
@@ -61,7 +73,7 @@ OPENSSL_CMD = ["openssl", "x509", "-enddate", "-noout", "-in"]
 # Time stuff
 DAYS_EARLY = 5
 ONE_DAY = 86400
-FOUR_HOURS= ONE_DAY/6
+FOUR_HOURS = ONE_DAY / 6
 SECONDS_EARLY = DAYS_EARLY * ONE_DAY
 CERT_TIME_FMT = "%b %d %H:%M:%S %Y %Z"
 
@@ -93,8 +105,8 @@ def _mk_cron_appt(appt, cert_pem):
     """
     wday = "*"
     stamp = f" {AUTOMARK} {time.strftime('%d %b %Y %H:%M', appt)}"
-    when= f"\n{appt.tm_min}\t{appt.tm_hour}\t{appt.tm_mday}\t{appt.tm_mon}\t{wday}"
-    appt_job =f"{when}\t{CRONIC}{stamp}"
+    when = f"\n{appt.tm_min}\t{appt.tm_hour}\t{appt.tm_mday}\t{appt.tm_mon}\t{wday}"
+    appt_job = f"{when}\t{CRONIC}{stamp}"
     return appt_job.encode()
 
 
@@ -124,18 +136,26 @@ def _vrfy_cronjob(job_line):
     return vrfy
 
 
+def _get_jobs(cron_list):
+    return [
+        line  # .replace(b"\n", b"")
+        for line in cron_list.stdout.split(b"\n")
+        if _vrfy_cronjob(line)
+    ]
+
+
+def _get_list():
+    return subprocess.run(LIST_CRON, capture_output=True, check=True)
+
+
 def _clean_cron():
     """
     _clean_cron remove blank lines and
     the previous cronic crontab entry
     from the crontab.
     """
-    cron_list = subprocess.run(LIST_CRON, capture_output=True,check=True)
-    cron_jobs = [
-        line.replace(b"\n", b"")
-        for line in cron_list.stdout.split(b"\n")
-        if _vrfy_cronjob(line)
-    ]
+    cron_list = _get_list()
+    cron_jobs = _get_jobs(cron_list)
     return b"\n".join(cron_jobs)
 
 
@@ -144,30 +164,30 @@ def _soonest_renewal(cron_jobs):
     _soonest_renewal if more than one cert is found,
     set the cron job for the  cert with the soonest renewal date.
     """
-    soonest=None
-    soon_cert=None
+    soonest = None
+    soon_cert = None
     for pair in cron_jobs:
         appt = pair[0]
         cert_pem = pair[1]
-        tg=timegm(appt)
+        tg = timegm(appt)
         if not soonest:
-            soonest=tg
+            soonest = tg
         if soonest >= tg:
-            soonest=tg
-            soon_cert=cert_pem
+            soonest = tg
+            soon_cert = cert_pem
     return _mk_cron_appt(time.gmtime(soonest), soon_cert)
 
 
-def _install_cron(cron_jobs,restarts):
+def _install_cron(cron_jobs, restarts):
     """
     _install_cron install the new crontab
     """
     with subprocess.Popen(INSTALL_CRON, stdin=subprocess.PIPE) as job:
         new_cron = _clean_cron() + _soonest_renewal(cron_jobs)
         chunk = b"\n".join(set(restarts))
-        new_cron+=b'\n'
-        new_cron+=chunk
-        new_cron+=b'\n'
+        new_cron += b"\n"
+        new_cron += chunk
+        new_cron += b"\n"
         job.communicate(new_cron)
     subprocess.call(LIST_CRON)
 
@@ -194,18 +214,25 @@ def _random_seconds():
     return random.randint(1, ONE_DAY)
 
 
+def _found_path(that):
+    cp = f"{LETS_DIR}/{that}"
+    if os.path.isdir(cp):
+        cp = f"{cp}/cert.pem"
+        if os.path.isfile(cp):
+            print(f"\n{REV} Found {cp} {NO}\n")
+            return cp
+    return False
+
+
 def _discover():
     """
     _discover find certs for renewal.
     """
     cert_list = []
     for that in os.listdir(LETS_DIR):
-        cp = f"{LETS_DIR}/{that}"
-        if os.path.isdir(cp):
-            cp = f"{cp}/cert.pem"
-            if os.path.isfile(cp):
-                print(f"\n{REV} Found {cp} {NO}\n")
-                cert_list.append(cp)
+        cp = _found_path(that)
+        if cp:
+            cert_list.append(cp)
     return cert_list
 
 
@@ -224,60 +251,87 @@ def _chk_cert(cert_pem):
     _chk_cert   determines if the cert needs renewing
     and renews it if needed.
     """
+    setjob = " Setting new cron job for "
+    notyet = "is not yet ready for renewal. "
+    thecert = cert_pem.replace(LETS_DIR + "/", "")
     timestamp, appt = _mk_timestamp_appt(cert_pem)
-    print(f"\t{REV} {cert_pem.replace(LETS_DIR+'/','')} expires {time.ctime(timestamp)} {NO} \n")
+    jobtime = time.strftime("%a, %d %b %Y %H:%M:%S", appt)
+    print(f"\t{REV}{thecert} expires {time.ctime(timestamp)} {NO} \n")
     days_left = (timestamp - time.time()) / ONE_DAY
     if days_left > DAYS_EARLY:
-        print(f"\t\t\t{Y}{REV} {cert_pem.replace(LETS_DIR+'/','')} is not yet ready for renewal. {NO} \n")
-        print(
-            f"\t{REV} Setting new cron job for {time.strftime('%a, %d %b %Y %H:%M:%S', appt)}.{NO} \n"
-        )
+        print(f"\t\t\t{Y}{REV} {thecert} {notyet}{NO} \n")
+        print(f"\t{REV} {setjob} {jobtime}.{NO} \n")
     else:
         appt = _renew_cert(cert_pem)
     return appt
 
 
+def _clean_up_restarts(restarts):
+    restarts = [re.sub(r"\s+", " ", line.decode()).strip() for line in restarts]
+    restarts = [line.split(" ", 5)[-1].split("#")[0] for line in restarts]
+    restarts += _cli_restarts()
+    return list(set(restarts))
+
+
 def _get_restarts():
     cron_list = subprocess.run(LIST_CRON, capture_output=True)
-    restarts = [ line.replace(b"\n", b"")
+    restarts = [
+        line.replace(b"\n", b"")
         for line in cron_list.stdout.split(b"\n")
-                if RESTARTMARK.encode() in line
-        ]
-    restarts = [re.sub(r"\s+"," ",line.decode()).strip() for line in restarts]
-    restarts = [line.split(" ",5)[-1].split("#")[0] for line in restarts]
-    restarts +=_cli_restarts()
-    return list(set(restarts))
+        if RESTARTMARK.encode() in line
+    ]
+    return _clean_up_restarts(restarts)
 
 
 def _cli_restarts():
     restarts = []
     for idx, arg in enumerate(sys.argv):
         if arg in ["--restart"]:
-            restarts.append(sys.argv[idx+1])
+            restarts.append(sys.argv[idx + 1])
     return restarts
 
 
 def _mk_restart(restart, appt):
     wday = "*"
-    when= f"{appt.tm_min}\t{appt.tm_hour}\t{appt.tm_mday}\t{appt.tm_mon}\t{wday}"
-    reappt_job =f"{when}\t{restart} {RESTARTMARK}"
+    when = f"{appt.tm_min}\t{appt.tm_hour}\t{appt.tm_mday}\t{appt.tm_mon}\t{wday}"
+    reappt_job = f"{when}\t{restart} {RESTARTMARK}"
     return reappt_job.encode()
+
+
+def helpme():
+    """
+    helpme print help message.
+
+    """
+    help_words = [
+        "-h",
+        "--h",
+        "--help",
+        "-help",
+        "help",
+    ]
+    if [h for h in help_words if h in sys.argv]:
+            print(HELP)
+            sys.exit()
 
 
 def cronic():
     """
     cronic automates cronjob creation for cert renewal with certbot.
     """
+    helpme()
     certs = _discover()
     cron_jobs = []
-    restart_jobs=[]
+    restart_jobs = []
     for cert_pem in certs:
         appt = _chk_cert(cert_pem)
         cron_jobs.append((appt, cert_pem))
-        tstamp,reappt= _mk_timestamp_appt(cert_pem, plus=170)
+        tstamp, reappt = _mk_timestamp_appt(cert_pem, plus=170)
         restarts = _get_restarts()
-        restart_jobs+=[_mk_restart(res,reappt) for res in restarts]
-    _install_cron(cron_jobs,restart_jobs)
+        restarts = [word.strip() for word in restarts]
+        restart_jobs += [_mk_restart(res, reappt) for res in restarts]
+        restart_jobs = list(set(restart_jobs))
+    _install_cron(cron_jobs, restart_jobs)
 
 
 if __name__ == "__main__":
