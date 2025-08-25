@@ -57,12 +57,12 @@ to remove a restart command:
 delete the line containing the command you wish to remove.
 """
 
-
+# some strings
 LETS_DIR = "/etc/letsencrypt/live"
 AUTOMARK = "# cronic auto-renew"
 RESTARTMARK = "# cronic restart"
 
-# commands
+# commands and command  related
 CERTBOT = "certbot"
 CRONIC = os.path.realpath(__file__)
 CRONTAB = "crontab"
@@ -70,14 +70,14 @@ LIST_CRON = [CRONTAB, "-l"]
 INSTALL_CRON = [CRONTAB, "-"]
 OPENSSL_CMD = ["openssl", "x509", "-enddate", "-noout", "-in"]
 
-# Time stuff
+# time.stuff
 DAYS_EARLY = 5
 ONE_DAY = 86400
 FOUR_HOURS = ONE_DAY / 6
 SECONDS_EARLY = DAYS_EARLY * ONE_DAY
 CERT_TIME_FMT = "%b %d %H:%M:%S %Y %Z"
 
-# ANSI Color Codes
+# ANSI color codes
 REV = "\033[7;1m"
 NO = "\033[0m"
 Y = "\033[93m"
@@ -95,7 +95,7 @@ def _renew_cert(cert_pem):
         _, appt = _mk_timestamp_appt(cert_pem)
     except:
         appt = time.gmtime(time.time() + FOUR_HOURS)
-        print(f"{Y}{REV}Renewal failed, trying again @ {appt}{NO}")
+        print(f"{Y}{REV}Renewal failed, retrying renewal @ {appt}{NO}")
     return appt
 
 
@@ -137,11 +137,7 @@ def _vrfy_cronjob(job_line):
 
 
 def _get_jobs(cron_list):
-    return [
-        line  # .replace(b"\n", b"")
-        for line in cron_list.stdout.split(b"\n")
-        if _vrfy_cronjob(line)
-    ]
+    return [line for line in cron_list.stdout.split(b"\n") if _vrfy_cronjob(line)]
 
 
 def _get_list():
@@ -209,18 +205,23 @@ def _cert_not_after(cert_pem):
 
 def _random_seconds():
     """
-    _random_seconds up to one day worth of seconds
+    _random_seconds  range is 1 to ONE_DAY(86400)
     """
     return random.randint(1, ONE_DAY)
 
 
-def _found_path(that):
+def _mk_cert_path(cp):
+    cp = f"{cp}/cert.pem"
+    if os.path.isfile(cp):
+        print(f"\n{REV} Found {cp} {NO}\n")
+        return cp
+    return False
+
+
+def _found_cert(that):
     cp = f"{LETS_DIR}/{that}"
     if os.path.isdir(cp):
-        cp = f"{cp}/cert.pem"
-        if os.path.isfile(cp):
-            print(f"\n{REV} Found {cp} {NO}\n")
-            return cp
+        return _mk_cert_path(cp)
     return False
 
 
@@ -230,7 +231,7 @@ def _discover():
     """
     cert_list = []
     for that in os.listdir(LETS_DIR):
-        cp = _found_path(that)
+        cp = _found_cert(that)
         if cp:
             cert_list.append(cp)
     return cert_list
@@ -311,8 +312,8 @@ def helpme():
         "help",
     ]
     if [h for h in help_words if h in sys.argv]:
-            print(HELP)
-            sys.exit()
+        print(HELP)
+        sys.exit()
 
 
 def cronic():
@@ -326,7 +327,7 @@ def cronic():
     for cert_pem in certs:
         appt = _chk_cert(cert_pem)
         cron_jobs.append((appt, cert_pem))
-        tstamp, reappt = _mk_timestamp_appt(cert_pem, plus=170)
+        _, reappt = _mk_timestamp_appt(cert_pem, plus=170)
         restarts = _get_restarts()
         restarts = [word.strip() for word in restarts]
         restart_jobs += [_mk_restart(res, reappt) for res in restarts]
