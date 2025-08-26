@@ -99,7 +99,7 @@ def _renew_cert(cert_pem):
     return appt
 
 
-def _mk_cron_appt(appt, cert_pem):
+def _mk_cron_appt(appt):
     """
     _mk_cron_appt create the crontab line.
     """
@@ -161,17 +161,13 @@ def _soonest_renewal(cron_jobs):
     set the cron job for the  cert with the soonest renewal date.
     """
     soonest = None
-    soon_cert = None
     for pair in cron_jobs:
         appt = pair[0]
-        cert_pem = pair[1]
         tg = timegm(appt)
         if not soonest:
             soonest = tg
-        if soonest >= tg:
-            soonest = tg
-            soon_cert = cert_pem
-    return _mk_cron_appt(time.gmtime(soonest), soon_cert)
+        soonest = min(soonest, tg)
+    return _mk_cron_appt(time.gmtime(soonest))
 
 
 def _install_cron(cron_jobs, restarts):
@@ -275,7 +271,7 @@ def _clean_up_restarts(restarts):
 
 
 def _get_restarts():
-    cron_list = subprocess.run(LIST_CRON, capture_output=True)
+    cron_list = subprocess.run(LIST_CRON, capture_output=True, check=True)
     restarts = [
         line.replace(b"\n", b"")
         for line in cron_list.stdout.split(b"\n")
