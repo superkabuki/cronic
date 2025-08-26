@@ -7,6 +7,8 @@
 * cronic has automatic Let's Encrypt certificate discovery.
 * cronic support multiple certificates with different renewal dates, on the same server.
 * cronic restarts services that use the certificates.
+* __pylint score__: 9.94
+* __cyclomatic complexity__: 2.0 (A)
 ---
 ## cronic Requirements
 1. __Python 3.6+__
